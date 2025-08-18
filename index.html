@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Candidate Ranker – HR Friendly</title>
+  <!-- Papa Parse for CSV parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    :root{
+      --bg:#0b1320; --card:#121a2b; --muted:#9fb0c3; --text:#ecf2ff; --accent:#6aa8ff; --accent2:#5fe1b9; --warn:#ffb86b;
+    }
+    html,body{height:100%;}
+    body{margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Arial; background:linear-gradient(180deg,#0b1320,#0d1426); color:var(--text);} 
+    .wrap{max-width:1200px; margin:24px auto; padding:0 16px;}
+    h1{font-size:28px; letter-spacing:.3px; margin:0 0 6px;}
+    .sub{color:var(--muted); margin-bottom:18px}
+    .card{background:var(--card); border:1px solid rgba(255,255,255,.06); border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.35);}
+    .row{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+    @media (max-width:900px){.row{grid-template-columns:1fr}}
+    .section{padding:18px 20px}
+    .section + .section{border-top:1px solid rgba(255,255,255,.06)}
+    label{display:block; font-size:13px; color:var(--muted); margin-bottom:6px}
+    input[type="file"], select, input[type="number"], input[type="text"]{width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.08); background:#0f172a; color:var(--text)}
+    .pill{display:inline-flex; align-items:center; gap:8px; background:#0e223d; padding:8px 12px; border-radius:999px; font-size:12px; color:#d9e4ff; border:1px solid rgba(255,255,255,.06)}
+    .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
+    @media (max-width:900px){.grid{grid-template-columns:1fr}}
+    .btn{display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:12px; color:#09111f; background:var(--accent); border:none; cursor:pointer; font-weight:600}
+    .btn.alt{background:transparent; color:var(--text); border:1px solid rgba(255,255,255,.15)}
+    .btn.warn{background:var(--warn)}
+    .btn:disabled{opacity:.6; cursor:not-allowed}
+    table{width:100%; border-collapse:collapse; font-size:14px}
+    th,td{padding:10px 12px; border-bottom:1px dashed rgba(255,255,255,.08); vertical-align:top}
+    th{color:#bcd0ea; text-align:left; position:sticky; top:0; background:var(--card)}
+    .score{font-weight:700; color:var(--accent2)}
+    .row-actions{display:flex; gap:8px; flex-wrap:wrap}
+    .small{font-size:12px; color:var(--muted)}
+    .kbd{background:#091329; border:1px solid rgba(255,255,255,.08); padding:2px 6px; border-radius:6px; font-size:12px}
+    .weights{display:grid; grid-template-columns:repeat(4,1fr); gap:12px}
+    @media (max-width:900px){.weights{grid-template-columns:1fr 1fr}}
+    .slider{display:grid; gap:6px}
+    input[type=range]{width:100%}
+    .badge{padding:2px 8px; border-radius:999px; background:#142341; color:#cfe2ff; font-size:12px}
+    .muted{color:var(--muted)}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Candidate Ranker <span class="badge">HR Friendly</span></h1>
+    <div class="sub">Upload a candidate CSV, set weights, and export a ranked Top N. Runs 100% in your browser (no server).</div>
+
+    <div class="card">
+      <div class="section row">
+        <div>
+          <label>Upload CSV (export from Comeet / ATS)</label>
+          <input id="file" type="file" accept=".csv" />
+          <div class="small" style="margin-top:8px">Detected columns will appear below so you can map them.</div>
+        </div>
+        <div>
+          <label>Top N to keep</label>
+          <input id="topN" type="number" min="1" value="30" />
+          <div class="small">Default is 30</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="grid">
+          <div>
+            <label>Column: <b>Name</b></label>
+            <select id="colName"></select>
+          </div>
+          <div>
+            <label>Column: <b>LinkedIn URL</b></label>
+            <select id="colLinkedIn"></select>
+          </div>
+          <div>
+            <label>Column: <b>ATS Candidate URL</b></label>
+            <select id="colATS"></select>
+          </div>
+          <div>
+            <label>Column(s) scanned for keywords (hold <span class="kbd">Ctrl</span> to select multiple)</label>
+            <select id="colScan" multiple size="6"></select>
+            <div class="small">Tip: include <i>Skills</i>, <i>Current position</i>, <i>Past position</i>, <i>Education level</i>, <i>Degree</i>.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px">
+          <span class="pill">Preset: <button class="btn alt" id="presetNet">Favor .NET</button> <button class="btn alt" id="presetBalanced">Balanced</button></span>
+          <span class="small">Adjust sliders to change scoring weights. Total score is the sum of matched keyword groups.</span>
+        </div>
+        <div class="weights" id="weights">
+          <!-- sliders injected here -->
+        </div>
+      </div>
+
+      <div class="section" style="display:flex; gap:10px; flex-wrap:wrap">
+        <button class="btn" id="rankBtn">Rank Candidates</button>
+        <button class="btn alt" id="previewBtn">Preview 10</button>
+        <button class="btn warn" id="exportBtn" disabled>Export Ranked CSV</button>
+        <span class="small" id="status"></span>
+      </div>
+
+      <div class="section" id="tableWrap" style="display:none">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
+          <div class="pill"><span>Results</span> <span id="resultCount"></span></div>
+          <div class="small">Sorted by <b>Score</b> desc. Click column headers to sort locally.</div>
+        </div>
+        <div style="overflow:auto; max-height:60vh">
+          <table id="tbl"><thead></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <p class="small muted" style="margin-top:14px">CSV never leaves your machine. Scoring is keyword-based and explainable. Edit weights to match your criteria.</p>
+  </div>
+
+<script>
+  // --- Keyword groups & default weights ---
+  const GROUPS = [
+    { key:"dotnet", label:".NET stack (.NET, C#, ASP.NET)", patterns:[".net","c#","asp.net","aspnet","entity framework","ef core"], weight:8 },
+    { key:"java", label:"Java stack (Java, Spring)", patterns:[" java ","spring","spring boot"], weight:2 },
+    { key:"micro", label:"Microservices", patterns:["microservice","micro-services","micro services"], weight:3 },
+    { key:"db", label:"Databases (SQL/NoSQL)", patterns:[" sql ","database","postgres","mysql","mssql","nosql","mongodb","cosmos","dynamodb"], weight:2 },
+    { key:"fe", label:"Front-end (React/Angular/Vue)", patterns:["react","angular","vue"], weight:2 },
+    { key:"devops", label:"CI/CD & Tools (Bitbucket/Jenkins/Pipelines)", patterns:["bitbucket","jenkins","pipeline","ci/cd","cicd","github actions","azure devops"], weight:2 },
+    { key:"cloud", label:"Cloud & Messaging (AWS/Azure/RabbitMQ/Couchbase)", patterns:["aws","azure","gcp","cloud","rabbitmq","couchbase","sqs","sns","kafka"], weight:2 },
+    { key:"support", label:"Support & Debugging", patterns:["support","tier-3","tier3","debug","troubleshoot","incident"], weight:2 },
+    { key:"edu", label:"Education (Bachelor/CS)", patterns:["bachelor","b.sc","bsc","computer science","b.tech","btech"], weight:2 },
+  ];
+
+  const el = id => document.getElementById(id);
+  const fileEl = el('file');
+  const rankBtn = el('rankBtn');
+  const previewBtn = el('previewBtn');
+  const exportBtn = el('exportBtn');
+  const statusEl = el('status');
+  const tableWrap = el('tableWrap');
+  const resultCount = el('resultCount');
+
+  const colName = el('colName');
+  const colLinkedIn = el('colLinkedIn');
+  const colATS = el('colATS');
+  const colScan = el('colScan');
+
+  let rows = [];         // raw records
+  let headers = [];      // csv headers
+  let ranked = [];       // ranked rows with score & reason
+
+  // Build weights UI
+  const weightsWrap = el('weights');
+  function renderWeightSliders(){
+    weightsWrap.innerHTML = '';
+    GROUPS.forEach(g=>{
+      const id = 'w_'+g.key;
+      const block = document.createElement('div');
+      block.className = 'slider card section';
+      block.innerHTML = `
+        <div style="font-weight:600">${g.label}</div>
+        <input type="range" id="${id}" min="0" max="12" step="1" value="${g.weight}">
+        <div class="small">Weight: <span class="badge" id="${id}_v">${g.weight}</span></div>
+      `;
+      weightsWrap.appendChild(block);
+      const slider = block.querySelector('#'+id);
+      const out = block.querySelector('#'+id+'_v');
+      slider.addEventListener('input',()=>{ out.textContent = slider.value; g.weight = Number(slider.value); });
+    });
+  }
+  renderWeightSliders();
+
+  // Presets
+  el('presetNet').addEventListener('click',()=>{
+    GROUPS.find(g=>g.key==='dotnet').weight = 10;
+    GROUPS.find(g=>g.key==='java').weight = 2;
+    GROUPS.find(g=>g.key==='micro').weight = 3;
+    GROUPS.find(g=>g.key==='db').weight = 3;
+    GROUPS.find(g=>g.key==='fe').weight = 2;
+    GROUPS.find(g=>g.key==='devops').weight = 2;
+    GROUPS.find(g=>g.key==='cloud').weight = 3;
+    GROUPS.find(g=>g.key==='support').weight = 3;
+    GROUPS.find(g=>g.key==='edu').weight = 2;
+    renderWeightSliders();
+  });
+  el('presetBalanced').addEventListener('click',()=>{
+    GROUPS.forEach(g=> g.weight = {dotnet:8, java:3, micro:3, db:2, fe:2, devops:2, cloud:2, support:2, edu:2}[g.key] || 2);
+    renderWeightSliders();
+  });
+
+  function guessMapping() {
+    const opts = headers.map(h=>`<option>${h}</option>`).join('');
+    [colName, colLinkedIn, colATS, colScan].forEach(sel=> sel.innerHTML = opts);
+
+    function selectIfContains(selectEl, substrings){
+      substrings = substrings.map(s=>s.toLowerCase());
+      const idx = headers.findIndex(h=> substrings.some(s=> h.toLowerCase().includes(s)));
+      if(idx>=0) selectEl.selectedIndex = idx;
+    }
+
+    selectIfContains(colName,["name"]);
+    selectIfContains(colLinkedIn,["linkedin"]);
+    selectIfContains(colATS,["candidate url","ats","comeet","url"]);
+
+    // Multi select defaults for scanning
+    const scanLikely = ["skills","current position","past position","education","degree","languages"];
+    Array.from(colScan.options).forEach(opt=>{
+      if (scanLikely.some(s=> opt.value.toLowerCase().includes(s))) opt.selected = true;
+    });
+  }
+
+  fileEl.addEventListener('change', (e)=>{
+    const f = e.target.files?.[0];
+    if(!f) return;
+    statusEl.textContent = 'Parsing…';
+    Papa.parse(f, {
+      header:true,
+      skipEmptyLines:true,
+      complete: (res)=>{
+        rows = res.data;
+        headers = res.meta.fields || Object.keys(rows[0]||{});
+        guessMapping();
+        tableWrap.style.display='none';
+        exportBtn.disabled = true;
+        statusEl.textContent = `Loaded ${rows.length} rows · ${headers.length} columns`;
+      },
+      error: (err)=>{
+        statusEl.textContent = 'Parse error: '+err;
+      }
+    })
+  });
+
+  function getSelectedScanColumns(){
+    return Array.from(colScan.selectedOptions).map(o=>o.value);
+  }
+
+  function makeTextBlob(r){
+    const scanCols = getSelectedScanColumns();
+    const parts = scanCols.map(c=> String(r[c]||''));
+    return (' '+parts.join(' ')+' ').toLowerCase(); // padded for exact-ish word checks
+  }
+
+  function scoreRow(r){
+    const text = makeTextBlob(r);
+    let score = 0; const hits=[];
+    GROUPS.forEach(g=>{
+      const matched = g.patterns.some(p=> text.includes(p));
+      if(matched){ score += g.weight; hits.push(g.label); }
+    });
+    return { score, reason: hits.join(' · ') };
+  }
+
+  function rank(topOnly=false){
+    if(!rows.length){ statusEl.textContent = 'Please upload a CSV first.'; return; }
+    const nameCol = colName.value; const liCol = colLinkedIn.value; const atsCol = colATS.value;
+
+    ranked = rows.map(r=>{
+      const {score, reason} = scoreRow(r);
+      return { ...r, __score:score, __reason:reason, __name:r[nameCol]||'', __li:r[liCol]||'', __ats:r[atsCol]||'' };
+    }).sort((a,b)=> b.__score - a.__score);
+
+    const topN = Math.max(1, Number(el('topN').value||30));
+    const view = topOnly ? ranked.slice(0,10) : ranked.slice(0, topN);
+    renderTable(view);
+
+    resultCount.textContent = `${view.length} shown (Top ${topOnly?10:topN}) of ${rows.length}`;
+    tableWrap.style.display='block';
+    exportBtn.disabled = false;
+  }
+
+  function renderTable(view){
+    const tbl = el('tbl');
+    const cols = ["__score","__name","__li","__ats","__reason"]; // always show these
+    // plus add a couple of helpful columns if they exist
+    const extras = ["Skills","Current position","Past position","Education level","Degree"].filter(h=> headers.includes(h));
+    const all = [...cols, ...extras];
+
+    const labels = {
+      "__score":"Score", "__name":"Name", "__li":"LinkedIn", "__ats":"Candidate URL", "__reason":"Why (matched keywords)"
+    };
+
+    // header
+    tbl.querySelector('thead').innerHTML = `<tr>${all.map(h=>`<th>${labels[h]||h}</th>`).join('')}</tr>`;
+
+    // body
+    tbl.querySelector('tbody').innerHTML = view.map(r=>{
+      return `<tr>
+        ${all.map(h=>{
+          let val = r[h] ?? '';
+          if(h==='__score') val = `<span class="score">${val}</span>`;
+          if(h==='__li' && val) val = `<a href="${val}" target="_blank">LinkedIn</a>`;
+          if(h==='__ats' && val) val = `<a href="${val}" target="_blank">Open in ATS</a>`;
+          if(h==='__reason') val = `<span class="small">${val}</span>`;
+          return `<td>${val}</td>`
+        }).join('')}
+      </tr>`
+    }).join('');
+  }
+
+  function exportCSV(){
+    if(!ranked.length) return;
+    const topN = Math.max(1, Number(el('topN').value||30));
+    const out = ranked.slice(0, topN).map(r=>({
+      Score:r.__score,
+      Name:r.__name,
+      LinkedIn:r.__li,
+      CandidateURL:r.__ats,
+      Why:r.__reason,
+      Skills:r['Skills']||'',
+      CurrentPosition:r['Current position']||'',
+      PastPosition:r['Past position']||'',
+      EducationLevel:r['Education level']||'',
+      Degree:r['Degree']||''
+    }));
+    const csv = Papa.unparse(out);
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `ranked_candidates_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  rankBtn.addEventListener('click', ()=> rank(false));
+  previewBtn.addEventListener('click', ()=> rank(true));
+  exportBtn.addEventListener('click', exportCSV);
+</script>
+</body>
+</html>
