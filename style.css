@@ -30,6 +30,9 @@ th{color:#bcd0ea; text-align:left; position:sticky; top:0; background:var(--card
 .weights{display:grid; grid-template-columns:repeat(4,1fr); gap:12px}
 @media (max-width:900px){.weights{grid-template-columns:1fr 1fr}}
 .slider{display:grid; gap:6px}
+.group-card{display:grid; gap:6px}
+.group-card .remove{margin-top:6px}
+#addGroup{margin-top:12px}
 input[type=range]{width:100%}
 .badge{padding:2px 8px; border-radius:999px; background:#142341; color:#cfe2ff; font-size:12px}
 .muted{color:var(--muted)}
