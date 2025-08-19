@@ -1,5 +1,5 @@
 // --- Keyword groups & default weights ---
-const GROUPS = [
+const DEFAULT_GROUPS = [
   { key:"dotnet", label:".NET stack (.NET, C#, ASP.NET)", patterns:[".net","c#","asp.net","aspnet","entity framework","ef core"], weight:8 },
   { key:"java", label:"Java stack (Java, Spring)", patterns:[" java ","spring","spring boot"], weight:2 },
   { key:"micro", label:"Microservices", patterns:["microservice","micro-services","micro services"], weight:3 },
@@ -11,7 +11,20 @@ const GROUPS = [
   { key:"edu", label:"Education (Bachelor/CS)", patterns:["bachelor","b.sc","bsc","computer science","b.tech","btech"], weight:2 },
 ];
 
-const el = id => document.getElementById(id);
+let groups = [];
+try {
+  groups = JSON.parse(localStorage.getItem('groups') || '[]');
+} catch(e) { groups = []; }
+if (!groups.length) {
+  groups = JSON.parse(JSON.stringify(DEFAULT_GROUPS));
+  saveGroups();
+}
+
+function saveGroups(){
+  localStorage.setItem('groups', JSON.stringify(groups));
+}
+
+const el = id => typeof document !== 'undefined' ? document.getElementById(id) : null;
 const fileEl = el('file');
 const rankBtn = el('rankBtn');
 const previewBtn = el('previewBtn');
@@ -29,43 +42,60 @@ let rows = [];         // raw records
 let headers = [];      // csv headers
 let ranked = [];       // ranked rows with score & reason
 
-// Build weights UI
+// Build group UI
 const weightsWrap = el('weights');
-function renderWeightSliders(){
+function renderGroupsUI(){
+  if(!weightsWrap) return;
   weightsWrap.innerHTML = '';
-  GROUPS.forEach(g=>{
-    const id = 'w_'+g.key;
+  groups.forEach((g,i)=>{
     const block = document.createElement('div');
-    block.className = 'slider card section';
+    block.className = 'group-card card section';
     block.innerHTML = `
-        <div style="font-weight:600">${g.label}</div>
-        <input type="range" id="${id}" min="0" max="12" step="1" value="${g.weight}">
-        <div class="small">Weight: <span class="badge" id="${id}_v">${g.weight}</span></div>
+        <input type="text" class="grp-label" placeholder="Label" value="${g.label}">
+        <input type="text" class="grp-patterns" placeholder="pattern1, pattern2" value="${g.patterns.join(', ')}">
+        <input type="range" class="grp-weight" min="0" max="12" step="1" value="${g.weight}">
+        <div class="small">Weight: <span class="badge">${g.weight}</span></div>
+        <button class="btn warn remove">Remove</button>
       `;
     weightsWrap.appendChild(block);
-    const slider = block.querySelector('#'+id);
-    const out = block.querySelector('#'+id+'_v');
-    slider.addEventListener('input',()=>{ out.textContent = slider.value; g.weight = Number(slider.value); });
+    const labelInput = block.querySelector('.grp-label');
+    labelInput.addEventListener('input',()=>{ g.label = labelInput.value; saveGroups(); });
+    const patternsInput = block.querySelector('.grp-patterns');
+    patternsInput.addEventListener('input',()=>{ g.patterns = patternsInput.value.split(',').map(p=>p.trim().toLowerCase()).filter(Boolean); saveGroups(); });
+    const slider = block.querySelector('.grp-weight');
+    const out = block.querySelector('.badge');
+    slider.addEventListener('input',()=>{ g.weight = Number(slider.value); out.textContent = slider.value; saveGroups(); });
+    block.querySelector('.remove').addEventListener('click',()=>{ groups.splice(i,1); renderGroupsUI(); saveGroups(); });
   });
 }
-renderWeightSliders();
+renderGroupsUI();
+const addGroupBtn = el('addGroup');
+if(addGroupBtn) addGroupBtn.addEventListener('click',()=>{
+  groups.push({ label:'', patterns:[], weight:0 });
+  renderGroupsUI();
+  saveGroups();
+});
 
 // Presets
-el('presetNet').addEventListener('click',()=>{
-  GROUPS.find(g=>g.key==='dotnet').weight = 10;
-  GROUPS.find(g=>g.key==='java').weight = 2;
-  GROUPS.find(g=>g.key==='micro').weight = 3;
-  GROUPS.find(g=>g.key==='db').weight = 3;
-  GROUPS.find(g=>g.key==='fe').weight = 2;
-  GROUPS.find(g=>g.key==='devops').weight = 2;
-  GROUPS.find(g=>g.key==='cloud').weight = 3;
-  GROUPS.find(g=>g.key==='support').weight = 3;
-  GROUPS.find(g=>g.key==='edu').weight = 2;
-  renderWeightSliders();
+const presetNetBtn = el('presetNet');
+if(presetNetBtn) presetNetBtn.addEventListener('click',()=>{
+  groups.find(g=>g.key==='dotnet').weight = 10;
+  groups.find(g=>g.key==='java').weight = 2;
+  groups.find(g=>g.key==='micro').weight = 3;
+  groups.find(g=>g.key==='db').weight = 3;
+  groups.find(g=>g.key==='fe').weight = 2;
+  groups.find(g=>g.key==='devops').weight = 2;
+  groups.find(g=>g.key==='cloud').weight = 3;
+  groups.find(g=>g.key==='support').weight = 3;
+  groups.find(g=>g.key==='edu').weight = 2;
+  renderGroupsUI();
+  saveGroups();
 });
-el('presetBalanced').addEventListener('click',()=>{
-  GROUPS.forEach(g=> g.weight = {dotnet:8, java:3, micro:3, db:2, fe:2, devops:2, cloud:2, support:2, edu:2}[g.key] || 2);
-  renderWeightSliders();
+const presetBalancedBtn = el('presetBalanced');
+if(presetBalancedBtn) presetBalancedBtn.addEventListener('click',()=>{
+  groups.forEach(g=> g.weight = {dotnet:8, java:3, micro:3, db:2, fe:2, devops:2, cloud:2, support:2, edu:2}[g.key] || 2);
+  renderGroupsUI();
+  saveGroups();
 });
 
 function guessMapping() {
@@ -89,7 +119,7 @@ function guessMapping() {
   });
 }
 
-fileEl.addEventListener('change', (e)=>{
+if(fileEl) fileEl.addEventListener('change', (e)=>{
   const f = e.target.files?.[0];
   if(!f) return;
   statusEl.textContent = 'Parsing…';
@@ -120,10 +150,10 @@ function makeTextBlob(r){
   return (' '+parts.join(' ')+' ').toLowerCase(); // padded for exact-ish word checks
 }
 
-function scoreRow(r){
-  const text = makeTextBlob(r);
+function scoreRow(r, textOverride){
+  const text = textOverride ?? makeTextBlob(r);
   let score = 0; const hits=[];
-  GROUPS.forEach(g=>{
+  groups.forEach(g=>{
     const matched = g.patterns.some(p=> text.includes(p));
     if(matched){ score += g.weight; hits.push(g.label); }
   });
@@ -201,6 +231,10 @@ function exportCSV(){
   URL.revokeObjectURL(url);
 }
 
-rankBtn.addEventListener('click', ()=> rank(false));
-previewBtn.addEventListener('click', ()=> rank(true));
-exportBtn.addEventListener('click', exportCSV);
+if(rankBtn) rankBtn.addEventListener('click', ()=> rank(false));
+if(previewBtn) previewBtn.addEventListener('click', ()=> rank(true));
+if(exportBtn) exportBtn.addEventListener('click', exportCSV);
+
+if (typeof module !== 'undefined') {
+  module.exports = { groups, saveGroups, renderGroupsUI, scoreRow };
+}
