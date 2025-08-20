@@ -8,8 +8,8 @@ function setup(){
     getItem(k){ return this.data[k]; },
     removeItem(k){ delete this.data[k]; }
   };
-  delete require.cache[require.resolve('../main.js')];
-  return require('../main.js');
+  delete require.cache[require.resolve('../app.bundle.js')];
+  return require('../app.bundle.js');
 }
 
 test('scoreRow uses current groups', () => {
