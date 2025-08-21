@@ -32,6 +32,7 @@ const exportBtn = el('exportBtn');
 const statusEl = el('status');
 const tableWrap = el('tableWrap');
 const resultCount = el('resultCount');
+const filterInput = el('filterInput');
 
 const colName = el('colName');
 const colLinkedIn = el('colLinkedIn');
@@ -176,6 +177,9 @@ function rank(topOnly=false){
   resultCount.textContent = `${view.length} shown (Top ${topOnly?10:topN}) of ${rows.length}`;
   tableWrap.style.display='block';
   exportBtn.disabled = false;
+  if(filterInput && filterInput.value){
+    filterInput.dispatchEvent(new Event('input'));
+  }
 }
 
 function renderTable(view){
@@ -234,6 +238,19 @@ function exportCSV(){
 if(rankBtn) rankBtn.addEventListener('click', ()=> rank(false));
 if(previewBtn) previewBtn.addEventListener('click', ()=> rank(true));
 if(exportBtn) exportBtn.addEventListener('click', exportCSV);
+
+if(filterInput) filterInput.addEventListener('input', () => {
+  if(!ranked.length){ return; }
+  const q = filterInput.value.trim().toLowerCase();
+  const filtered = ranked.filter(r => {
+    if(!q) return true;
+    const name = String(r.__name || '').toLowerCase();
+    const text = makeTextBlob(r);
+    return name.includes(q) || text.includes(q);
+  });
+  renderTable(filtered);
+  resultCount.textContent = `${filtered.length} shown of ${ranked.length}`;
+});
 
 if (typeof module !== 'undefined') {
   module.exports = { groups, saveGroups, renderGroupsUI, scoreRow };
