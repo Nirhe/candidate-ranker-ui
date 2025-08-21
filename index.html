@@ -50,6 +50,12 @@
       </div>
 
       <div class="section">
+        <label>Job Description</label>
+        <textarea id="jobDesc" style="width:100%; height:80px" placeholder="Paste job description"></textarea>
+        <button class="btn alt" id="genFromDesc" style="margin-top:8px">Generate Groups</button>
+      </div>
+
+      <div class="section">
         <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px">
           <span class="pill">Preset: <button class="btn alt" id="presetNet">Favor .NET</button> <button class="btn alt" id="presetBalanced">Balanced</button></span>
           <span class="small">Adjust sliders to change scoring weights. Total score is the sum of matched keyword groups.</span>
