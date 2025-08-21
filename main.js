@@ -20,8 +20,26 @@ if (!groups.length) {
   saveGroups();
 }
 
+const STOP_WORDS = new Set('a an and are as at be by for from in is it of on or the to with your you our we this that'.split(' '));
+const DEFAULT_GENERATED_WEIGHT = 2;
+const GEN_TOP_N = 8;
+
 function saveGroups(){
   localStorage.setItem('groups', JSON.stringify(groups));
+}
+
+function generateGroupsFromDesc(desc){
+  const tokens = (desc.toLowerCase().match(/[a-z0-9+.#]+/g) || []).filter(t => !STOP_WORDS.has(t));
+  const counts = {};
+  tokens.forEach(t => counts[t] = (counts[t]||0)+1);
+  const topTokens = Object.entries(counts)
+    .sort((a,b)=> b[1]-a[1])
+    .slice(0, GEN_TOP_N)
+    .map(([tok])=>({ label:tok, patterns:[tok], weight:DEFAULT_GENERATED_WEIGHT }));
+  groups.length = 0;
+  groups.push(...topTokens);
+  renderGroupsUI();
+  saveGroups();
 }
 
 const el = id => typeof document !== 'undefined' ? document.getElementById(id) : null;
@@ -33,6 +51,9 @@ const statusEl = el('status');
 const tableWrap = el('tableWrap');
 const resultCount = el('resultCount');
 const filterInput = el('filterInput');
+
+const jobDescEl = el('jobDesc');
+const genFromDescBtn = el('genFromDesc');
 
 const colName = el('colName');
 const colLinkedIn = el('colLinkedIn');
@@ -75,6 +96,10 @@ if(addGroupBtn) addGroupBtn.addEventListener('click',()=>{
   groups.push({ label:'', patterns:[], weight:0 });
   renderGroupsUI();
   saveGroups();
+});
+
+if(genFromDescBtn) genFromDescBtn.addEventListener('click',()=>{
+  generateGroupsFromDesc(jobDescEl.value || '');
 });
 
 // Presets
@@ -253,5 +278,5 @@ if(filterInput) filterInput.addEventListener('input', () => {
 });
 
 if (typeof module !== 'undefined') {
-  module.exports = { groups, saveGroups, renderGroupsUI, scoreRow };
+  module.exports = { groups, saveGroups, renderGroupsUI, scoreRow, generateGroupsFromDesc };
 }

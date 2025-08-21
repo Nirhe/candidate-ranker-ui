@@ -35,3 +35,15 @@ test('saveGroups persists changes', () => {
   const stored = JSON.parse(global.localStorage.getItem('groups'));
   assert.strictEqual(stored.length, initial + 1);
 });
+
+test('generateGroupsFromDesc builds groups from job description', () => {
+  const main = setup();
+  main.generateGroupsFromDesc('java Java AWS c# aws python');
+  assert.strictEqual(main.groups.length, 4);
+  const labels = main.groups.map(g=>g.label).sort();
+  assert.deepStrictEqual(labels, ['aws','c#','java','python']);
+  main.groups.forEach(g=>{
+    assert.deepStrictEqual(g.patterns, [g.label]);
+    assert.strictEqual(g.weight, 2);
+  });
+});
