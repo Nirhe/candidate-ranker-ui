@@ -12,14 +12,11 @@ const DEFAULT_GROUPS = [
 ];
 
 let groups = [];
-try {
-  groups = JSON.parse(localStorage.getItem('groups') || '[]');
-} catch(e) { groups = []; }
-if (!groups.length) {
-  groups = JSON.parse(JSON.stringify(DEFAULT_GROUPS));
-  saveGroups();
+function loadGroups(){
+  try {
+    groups = JSON.parse(localStorage.getItem('groups') || '[]');
+  } catch(e) { groups = []; }
 }
-
 function saveGroups(){
   localStorage.setItem('groups', JSON.stringify(groups));
 }
@@ -45,6 +42,9 @@ let ranked = [];       // ranked rows with score & reason
 
 // Build group UI
 const weightsWrap = el('weights');
+const groupsArea = el('groupsArea');
+const generateGroupsBtn = el('generateGroups');
+
 function renderGroupsUI(){
   if(!weightsWrap) return;
   weightsWrap.innerHTML = '';
@@ -69,7 +69,17 @@ function renderGroupsUI(){
     block.querySelector('.remove').addEventListener('click',()=>{ groups.splice(i,1); renderGroupsUI(); saveGroups(); });
   });
 }
-renderGroupsUI();
+
+if(generateGroupsBtn) generateGroupsBtn.addEventListener('click', ()=>{
+  loadGroups();
+  if(!groups.length){
+    groups = JSON.parse(JSON.stringify(DEFAULT_GROUPS));
+    saveGroups();
+  }
+  if(groupsArea) groupsArea.style.display = 'block';
+  generateGroupsBtn.style.display = 'none';
+  renderGroupsUI();
+});
 const addGroupBtn = el('addGroup');
 if(addGroupBtn) addGroupBtn.addEventListener('click',()=>{
   groups.push({ label:'', patterns:[], weight:0 });
