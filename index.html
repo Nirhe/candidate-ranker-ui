@@ -50,14 +50,21 @@
       </div>
 
       <div class="section">
-        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px">
-          <span class="pill">Preset: <button class="btn alt" id="presetNet">Favor .NET</button> <button class="btn alt" id="presetBalanced">Balanced</button></span>
-          <span class="small">Adjust sliders to change scoring weights. Total score is the sum of matched keyword groups.</span>
+        <label>Job Description</label>
+        <textarea id="jobDesc" placeholder="Paste job description here" rows="6"></textarea>
+      </div>
+
+      <div class="section">
+        <div id="groupsArea" style="display:none">
+          <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px">
+            <span class="pill">Preset: <button class="btn alt" id="presetNet">Favor .NET</button> <button class="btn alt" id="presetBalanced">Balanced</button></span>
+            <span class="small">Adjust sliders to change scoring weights. Total score is the sum of matched keyword groups.</span>
+          </div>
+          <div class="weights" id="weights">
+            <!-- sliders injected here -->
+          </div>
+          <button class="btn alt" id="addGroup" style="margin-top:10px">Add Group</button>
         </div>
-        <div class="weights" id="weights">
-          <!-- sliders injected here -->
-        </div>
-        <button class="btn alt" id="addGroup" style="margin-top:10px">Add Group</button>
       </div>
 
       <div class="section" style="display:flex; gap:10px; flex-wrap:wrap">
