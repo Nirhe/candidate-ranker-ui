@@ -1,4 +1,4 @@
-const {DEFAULT_GROUPS, groups, loadGroups, saveGroups, scoreRow} = window.app;
+const { groups, loadGroups, saveGroups, scoreRow, DEFAULT_GROUPS: defaultGroups } = window.app;
 
 function App(){
   const [headers, setHeaders] = React.useState([]);
@@ -13,7 +13,7 @@ function App(){
   React.useEffect(()=>{
     loadGroups();
     if(!groups.length){
-      groups.push(...DEFAULT_GROUPS);
+      groups.push(...defaultGroups);
       saveGroups();
     }
     setGroupState(groups.map(g=>({...g})));
