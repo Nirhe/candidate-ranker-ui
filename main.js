@@ -1,5 +1,8 @@
 // --- Keyword groups & default weights ---
-const DEFAULT_GROUPS = [
+if (typeof window === 'undefined') {
+  globalThis.window = {};
+}
+window.DEFAULT_GROUPS = [
   { key:"dotnet", label:".NET stack (.NET, C#, ASP.NET)", patterns:[".net","c#","asp.net","aspnet","entity framework","ef core"], weight:8 },
   { key:"java", label:"Java stack (Java, Spring)", patterns:[" java ","spring","spring boot"], weight:2 },
   { key:"micro", label:"Microservices", patterns:["microservice","micro-services","micro services"], weight:3 },
@@ -76,7 +79,7 @@ if(jobDesc) jobDesc.addEventListener('paste', ()=>{
   setTimeout(()=>{
     loadGroups();
     if(!groups.length){
-      groups = JSON.parse(JSON.stringify(DEFAULT_GROUPS));
+      groups = JSON.parse(JSON.stringify(window.DEFAULT_GROUPS));
       saveGroups();
     }
     if(groupsArea) groupsArea.style.display = 'block';
@@ -267,5 +270,5 @@ if(filterInput) filterInput.addEventListener('input', () => {
 });
 
 if (typeof module !== 'undefined') {
-  module.exports = { groups, saveGroups, renderGroupsUI, scoreRow };
+  module.exports = { groups, saveGroups, renderGroupsUI, scoreRow, DEFAULT_GROUPS: window.DEFAULT_GROUPS };
 }
