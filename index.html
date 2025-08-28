@@ -3,92 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Candidate Ranker – HR Friendly</title>
-  <!-- Papa Parse for CSV parsing -->
+  <title>Candidate Ranker – React</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="wrap">
-    <h1>Candidate Ranker <span class="badge">HR Friendly</span></h1>
-    <div class="sub">Upload a candidate CSV, set weights, and export a ranked Top N. Runs 100% in your browser (no server).</div>
-
-    <div class="card">
-      <div class="section row">
-        <div>
-          <label>Upload CSV (export from Comeet / ATS)</label>
-          <input id="file" type="file" accept=".csv" />
-          <div class="small" style="margin-top:8px">Detected columns will appear below so you can map them.</div>
-        </div>
-        <div>
-          <label>Top N to keep</label>
-          <input id="topN" type="number" min="1" value="30" />
-          <div class="small">Default is 30</div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="grid">
-          <div>
-            <label>Column: <b>Name</b></label>
-            <select id="colName"></select>
-          </div>
-          <div>
-            <label>Column: <b>LinkedIn URL</b></label>
-            <select id="colLinkedIn"></select>
-          </div>
-          <div>
-            <label>Column: <b>ATS Candidate URL</b></label>
-            <select id="colATS"></select>
-          </div>
-          <div>
-            <label>Column(s) scanned for keywords (hold <span class="kbd">Ctrl</span> to select multiple)</label>
-            <select id="colScan" multiple size="6"></select>
-            <div class="small">Tip: include <i>Skills</i>, <i>Current position</i>, <i>Past position</i>, <i>Education level</i>, <i>Degree</i>.</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="section">
-        <label>Job Description</label>
-        <textarea id="jobDesc" placeholder="Paste job description here" rows="6"></textarea>
-      </div>
-
-      <div class="section">
-        <div id="groupsArea" style="display:none">
-          <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px">
-            <span class="pill">Preset: <button class="btn alt" id="presetNet">Favor .NET</button> <button class="btn alt" id="presetBalanced">Balanced</button></span>
-            <span class="small">Adjust sliders to change scoring weights. Total score is the sum of matched keyword groups.</span>
-          </div>
-          <div class="weights" id="weights">
-            <!-- sliders injected here -->
-          </div>
-          <button class="btn alt" id="addGroup" style="margin-top:10px">Add Group</button>
-        </div>
-      </div>
-
-      <div class="section" style="display:flex; gap:10px; flex-wrap:wrap">
-        <button class="btn" id="rankBtn">Rank Candidates</button>
-        <button class="btn alt" id="previewBtn">Preview 10</button>
-        <button class="btn warn" id="exportBtn" disabled>Export Ranked CSV</button>
-        <span class="small" id="status"></span>
-      </div>
-
-      <div class="section" id="tableWrap" style="display:none">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
-          <div class="pill"><span>Results</span> <span id="resultCount"></span></div>
-          <div class="small">Sorted by <b>Score</b> desc. Click column headers to sort locally.</div>
-        </div>
-        <input id="filterInput" type="text" placeholder="Filter results" style="margin-bottom:10px; width:100%" />
-        <div style="overflow:auto; max-height:60vh">
-          <table id="tbl"><thead></thead><tbody></tbody></table>
-        </div>
-      </div>
-    </div>
-
-    <p class="small muted" style="margin-top:14px">CSV never leaves your machine. Scoring is keyword-based and explainable. Edit weights to match your criteria.</p>
-  </div>
-
-<script src="main.js"></script>
+  <div id="root"></div>
+  <script src="main.js"></script>
+  <script type="text/babel" src="app.jsx"></script>
 </body>
 </html>
